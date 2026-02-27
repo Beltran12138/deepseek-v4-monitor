@@ -8,7 +8,7 @@ A comprehensive monitoring tool for DeepSeek-V4 release signals across multiple 
 - **GitHub**: Tracking infrastructure repos (DeepGEMM, FlashMLA, EPLB, etc.) for new branches or commits.
 - **Twitter (X)**: Monitoring official and key community accounts via RSSHub.
 - **Reddit**: Searching `r/LocalLLaMA` for the latest discussions and leaks.
-- **Notifications**: Instant alerts via Windows desktop popups and Telegram Bot.
+- **Notifications**: Instant alerts via Windows desktop popups, **ntfy** (free, no account needed), and Telegram Bot.
 
 ## Setup
 
@@ -25,7 +25,8 @@ A comprehensive monitoring tool for DeepSeek-V4 release signals across multiple 
 
 3. **Configure environment variables**:
    - Copy `.env.example` to `.env`.
-   - Fill in your `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.
+   - For mobile push (recommended): set `NTFY_TOPIC` to a unique string, then subscribe to that topic in the [ntfy app](https://ntfy.sh/app).
+   - (Optional) Fill in `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` for Telegram alerts.
    - (Optional) Add a `GITHUB_TOKEN` to avoid API rate limiting.
 
 4. **Run the monitor**:

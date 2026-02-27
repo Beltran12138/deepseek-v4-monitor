@@ -28,16 +28,18 @@ if sys.platform == "win32":
         pass
 
 # ===================== 用户配置 =====================
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")  # 从环境变量获取
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "300"))
 PRICE_ALERT_THRESHOLD = float(os.getenv("PRICE_ALERT_THRESHOLD", "0.04"))
 
-# Telegram 通知配置
+# ntfy 推送（免费，无需注册，Android/iOS 通用）
+NTFY_TOPIC = os.getenv("NTFY_TOPIC", "")        # 例：deepseek-v4-a6a4c799cf69
+
+# Telegram 推送（国内需要代理）
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
-# 如果你在国内使用，可能需要配置代理，例如: {"https": "http://127.0.0.1:7890"}
+TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID", "")
 proxy_env = os.getenv("TELEGRAM_PROXIES")
-TELEGRAM_PROXIES = {"https": proxy_env} if proxy_env else None
+TELEGRAM_PROXIES   = {"https": proxy_env} if proxy_env else None
 
 # Polymarket 监控配置
 POLYMARKET_SLUGS = [
@@ -94,23 +96,45 @@ def notify_windows(title, body):
     except Exception:
         pass
 
-def send_telegram_notification(title, body):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        return
-    
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        text = f"<b>{title}</b>\n\n{body}"
-        payload = {
-            "chat_id": TELEGRAM_CHAT_ID,
-            "text": text,
-            "parse_mode": "HTML"
-        }
-        r = requests.post(url, json=payload, proxies=TELEGRAM_PROXIES, timeout=15)
-        r.raise_for_status()
-        log("INFO", "[Telegram] 通知已发送")
-    except Exception as e:
-        log("WARN", f"[Telegram] 发送失败: {e}")
+def notify_mobile(title, body):
+    """手机推送：ntfy（推荐）或 Telegram（备用）"""
+    import urllib.parse
+    sent = False
+
+    # ntfy —— 无需注册，直接推送
+    if NTFY_TOPIC:
+        try:
+            requests.post(
+                f"https://ntfy.sh/{NTFY_TOPIC}",
+                data=body.encode("utf-8"),
+                headers={
+                    "Title":        urllib.parse.quote(title),
+                    "Priority":     "urgent",
+                    "Tags":         "rotating_light",
+                    "Content-Type": "text/plain; charset=utf-8",
+                },
+                timeout=10,
+            )
+            log("INFO", f"[ntfy] 已推送 -> {NTFY_TOPIC}")
+            sent = True
+        except Exception as e:
+            log("WARN", f"[ntfy] 失败: {e}")
+
+    # Telegram —— 备用（国内需代理）
+    if not sent and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        try:
+            r = requests.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                json={"chat_id": TELEGRAM_CHAT_ID,
+                      "text": f"<b>{title}</b>\n\n{body}",
+                      "parse_mode": "HTML"},
+                proxies=TELEGRAM_PROXIES,
+                timeout=15,
+            )
+            r.raise_for_status()
+            log("INFO", "[Telegram] 已推送")
+        except Exception as e:
+            log("WARN", f"[Telegram] 失败: {e}")
 
 # ===================== 状态管理 =====================
 def load_state():
@@ -458,10 +482,10 @@ def main():
                 log(level, msg)
             print(f"{C.RED}{C.BOLD}{'!!' * 18}{C.RESET}\n")
 
-            # 告警推送（电脑弹窗 + Telegram）
+            # 告警推送（电脑弹窗 + 手机）
             alert_body = "\n".join(msg for _, msg in all_alerts[:5])
             notify_windows("!! DeepSeek V4 监控告警！", alert_body)
-            send_telegram_notification("DeepSeek V4 监控告警", alert_body)
+            notify_mobile("DeepSeek V4 Alert", alert_body)
         else:
             print(f"\n{C.GREEN}  ok 本轮无异动{C.RESET}")
 
