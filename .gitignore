@@ -1,0 +1,10 @@
+# Local state and config
+state.json
+.env
+__pycache__/
+*.log
+*.pyc
+
+# IDE configs
+.vscode/
+.idea/
