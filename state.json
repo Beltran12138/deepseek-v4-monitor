@@ -1,0 +1,130 @@
+{
+  "hf_models": [
+    "deepseek-ai/DeepSeek-Prover-V2-7B",
+    "deepseek-ai/DeepSeek-OCR-2",
+    "deepseek-ai/DeepSeek-V3.2-Exp-Base",
+    "deepseek-ai/DeepSeek-V3.1-Base",
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
+    "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    "deepseek-ai/Janus-Pro-1B",
+    "deepseek-ai/DeepSeek-V3.2-Speciale",
+    "deepseek-ai/JanusFlow-1.3B",
+    "deepseek-ai/DeepSeek-OCR",
+    "deepseek-ai/DeepSeek-V3.1-Terminus",
+    "deepseek-ai/DeepSeek-V3.1",
+    "deepseek-ai/DeepSeek-R1",
+    "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+    "deepseek-ai/deepseek-vl2",
+    "deepseek-ai/DeepSeek-V3-Base",
+    "deepseek-ai/DeepSeek-R1-Zero",
+    "deepseek-ai/DeepSeek-V3-0324",
+    "deepseek-ai/DeepSeek-V3.2",
+    "deepseek-ai/DeepSeek-Math-V2",
+    "deepseek-ai/DeepSeek-V3",
+    "deepseek-ai/DeepSeek-Prover-V2-671B",
+    "deepseek-ai/Janus-Pro-7B",
+    "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+    "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+    "deepseek-ai/DeepSeek-R1-0528",
+    "deepseek-ai/Janus-1.3B",
+    "deepseek-ai/DeepSeek-V3.2-Exp"
+  ],
+  "hf_datasets": [
+    "deepseek-ai/DeepSeek-ProverBench",
+    "deepseek-ai/DeepSeek-Prover-V1"
+  ],
+  "github_branches": {
+    "DeepGEMM": [
+      "ko3n1g/ci/build-wheels",
+      "main",
+      "nv_dev"
+    ],
+    "FlashMLA": [
+      "main",
+      "nv_dev"
+    ],
+    "DeepEP": [
+      "add-linter",
+      "antgroup-opt",
+      "compat-old-torch",
+      "eager-rdma",
+      "elect-one-sync",
+      "fix-OOB",
+      "hybrid-ep",
+      "main",
+      "mori-ep",
+      "tencent-zcopy"
+    ],
+    "3FS": [
+      "SF-Zhou-patch-1",
+      "main"
+    ],
+    "EPLB": [
+      "main"
+    ],
+    "LPLB": [
+      "main"
+    ],
+    "DeepSeek-V3": [
+      "main"
+    ],
+    "DeepSeek-R1": [
+      "main"
+    ]
+  },
+  "github_latest_commit": {
+    "DeepGEMM": "35c4bc8",
+    "FlashMLA": "47c35a7",
+    "DeepEP": "567632d",
+    "3FS": "9814c6e",
+    "EPLB": "d52c72d",
+    "LPLB": "0490f79",
+    "DeepSeek-V3": "9b4e978",
+    "DeepSeek-R1": "0cf7856"
+  },
+  "polymarket_prices": {
+    "1221088": 0.0,
+    "1170467": 0.545,
+    "1333269": 0.0155,
+    "1360940": 0.205
+  },
+  "reddit_seen": [],
+  "twitter_seen": {},
+  "first_run": false,
+  "github_all_repos": [
+    "DeepSeek-Math",
+    "DeepSeek-V3",
+    "ESFT",
+    "Engram",
+    "open-infra-index",
+    "Janus",
+    "DeepGEMM",
+    "smallpond",
+    "DeepSeek-OCR",
+    "DeepSeek-V3.2-Exp",
+    "DualPipe",
+    "DeepSeek-MoE",
+    "DreamCraft3D",
+    "DeepSeek-VL",
+    "DeepSeek-Prover-V2",
+    "DeepEP",
+    "DeepSeek-R1",
+    "DeepSeek-OCR-2",
+    "profile-data",
+    "DeepSeek-LLM",
+    "3FS",
+    "awesome-deepseek-coder",
+    "DeepSeek-V2",
+    "awesome-deepseek-integration",
+    "FlashMLA",
+    "LPLB",
+    "DeepSeek-Coder-V2",
+    "DeepSeek-Math-V2",
+    "DeepSeek-VL2",
+    "EPLB",
+    "DeepSeek-Coder",
+    "DeepSeek-Prover-V1.5"
+  ]
+}
