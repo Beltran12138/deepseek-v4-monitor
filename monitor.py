@@ -28,7 +28,7 @@ if sys.platform == "win32":
         pass
 
 # ===================== 用户配置 =====================
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+GITHUB_TOKEN = os.getenv("MONITOR_GITHUB_TOKEN", os.getenv("GITHUB_TOKEN", ""))
 CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "300"))
 PRICE_ALERT_THRESHOLD = float(os.getenv("PRICE_ALERT_THRESHOLD", "0.04"))
 
@@ -493,8 +493,40 @@ def main():
         time.sleep(CHECK_INTERVAL)
 
 
+def run_once():
+    """单次检查模式，供 GitHub Actions 调用"""
+    state = load_state()
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"\n[GitHub Actions] 单次检查 {ts}")
+
+    all_alerts = []
+    all_alerts += check_huggingface(state)
+    all_alerts += check_github(state)
+    all_alerts += check_polymarket(state)
+    all_alerts += check_reddit(state)
+    all_alerts += check_twitter(state)
+
+    if state.get("first_run"):
+        state["first_run"] = False
+
+    save_state(state)
+
+    if all_alerts:
+        print(f"\n{'!!'*20}")
+        for level, msg in all_alerts:
+            log(level, msg)
+        alert_body = "\n".join(msg for _, msg in all_alerts[:5])
+        notify_mobile("DeepSeek V4 Alert", alert_body)
+        print(f"{'!!'*20}\n")
+    else:
+        print("ok 本轮无异动\n")
+
+
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print(f"\n{C.YELLOW}已停止监控。再见！{C.RESET}\n")
+    if "--once" in sys.argv:
+        run_once()
+    else:
+        try:
+            main()
+        except KeyboardInterrupt:
+            print(f"\n{C.YELLOW}已停止监控。再见！{C.RESET}\n")
