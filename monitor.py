@@ -25,6 +25,11 @@ import sources
 import discoverer
 import notifier
 
+try:
+    from dashboard.app import broadcast as _broadcast
+except Exception:
+    _broadcast = None
+
 CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "300"))
 STATE_FILE = Path(__file__).parent / "state.json"
 
@@ -48,7 +53,9 @@ def load_state() -> dict:
 
 
 def save_state(state: dict):
-    STATE_FILE.write_text(json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp = STATE_FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(STATE_FILE)
 
 
 def _run_cycle(state: dict) -> int:
@@ -65,8 +72,6 @@ def _run_cycle(state: dict) -> int:
 
     for sig in all_signals:
         scored = scorer.score_signal(sig["source"], sig["content"], llm_calls)
-        if scored["llm_score"] is not None:
-            llm_calls += 1
 
         sid = db.insert_signal(
             ts,
@@ -79,6 +84,7 @@ def _run_cycle(state: dict) -> int:
             continue  # duplicate
 
         if scored["llm_score"] is not None:
+            llm_calls += 1
             db.update_signal_llm(sid, scored["llm_score"], scored["llm_reason"])
 
         level = scored["level"]
@@ -90,21 +96,21 @@ def _run_cycle(state: dict) -> int:
             if sent:
                 db.mark_notified(sid)
 
-        try:
-            from dashboard.app import broadcast
-            broadcast({
-                "type": "signal",
-                "id": sid,
-                "level": level,
-                "source": sig["source"],
-                "target_model": sig["target_model"],
-                "content": sig["content"],
-                "rule_score": scored["rule_score"],
-                "llm_score": scored["llm_score"],
-                "timestamp": ts,
-            })
-        except Exception:
-            pass
+        if _broadcast is not None:
+            try:
+                _broadcast({
+                    "type": "signal",
+                    "id": sid,
+                    "level": level,
+                    "source": sig["source"],
+                    "target_model": sig["target_model"],
+                    "content": sig["content"],
+                    "rule_score": scored["rule_score"],
+                    "llm_score": scored["llm_score"],
+                    "timestamp": ts,
+                })
+            except Exception:
+                pass
 
     if state.get("first_run"):
         state["first_run"] = False

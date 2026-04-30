@@ -274,7 +274,7 @@ def check_arxiv(state: dict) -> list[dict]:
                     signals.append({
                         "source": "arxiv",
                         "target_model": target,
-                        "content": f"[arXiv] {title} — {entry_id}",
+                        "content": f"[arXiv] {title} — {raw_id}",
                     })
 
         except Exception:

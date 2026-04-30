@@ -1,18 +1,18 @@
 import hashlib
 import os
 import sqlite3
+import threading
 from pathlib import Path
 
 DB_PATH = os.getenv("DB_PATH", str(Path(__file__).parent / "intelligence.db"))
 
-_conn_cache: sqlite3.Connection | None = None
+_local = threading.local()
 
 def get_conn() -> sqlite3.Connection:
-    global _conn_cache
-    if _conn_cache is None:
-        _conn_cache = sqlite3.connect(DB_PATH, check_same_thread=False)
-        _conn_cache.row_factory = sqlite3.Row
-    return _conn_cache
+    if not hasattr(_local, "conn"):
+        _local.conn = sqlite3.connect(DB_PATH)
+        _local.conn.row_factory = sqlite3.Row
+    return _local.conn
 
 def init_db():
     with get_conn() as conn:

@@ -8,7 +8,7 @@ SIGNAL_WEIGHTS = {
     "arxiv":                 5,
     "github_new_branch":     4,
     "github_new_commit":     4,
-    "huggingface_new_model": 4,
+    "huggingface": 4,
     "polymarket_price_spike":3,
     "reddit_hot":            2,
     "twitter":               1,
