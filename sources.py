@@ -125,45 +125,46 @@ def check_huggingface(state: dict) -> list[dict]:
 
 
 # ===================== Reddit r/LocalLLaMA =====================
+_REDDIT_QUERIES = ["DeepSeek V5", "GPT-5", "Claude 5", "Gemini 3"]
+_REDDIT_HEADERS = {"User-Agent": "Mozilla/5.0 AIMonitor/2.0 (personal research)"}
+
 def check_reddit(state: dict) -> list[dict]:
     """Extract Reddit signals: new posts mentioning AI model keywords."""
     signals = []
     first_run = state.get("first_run", True)
+    seen = set(state.get("reddit_seen", []))
 
-    try:
-        url = "https://www.reddit.com/r/LocalLLaMA/search.json"
-        params = {"q": "DeepSeek V4", "sort": "new", "limit": 15, "t": "week"}
-        headers = {"User-Agent": "Mozilla/5.0 DeepSeekMonitor/1.0 (personal research)"}
-        r = requests.get(url, params=params, headers=headers, timeout=15)
-        r.raise_for_status()
+    for query in _REDDIT_QUERIES:
+        try:
+            r = requests.get(
+                "https://www.reddit.com/r/LocalLLaMA/search.json",
+                params={"q": query, "sort": "new", "limit": 10, "t": "week"},
+                headers=_REDDIT_HEADERS,
+                timeout=15,
+            )
+            r.raise_for_status()
+            posts = r.json()["data"]["children"]
+            new_posts = []
+            for post in posts:
+                d = post["data"]
+                if d["id"] not in seen:
+                    new_posts.append(d)
+                    seen.add(d["id"])
+            if not first_run:
+                for p in sorted(new_posts, key=lambda x: x.get("score", 0), reverse=True):
+                    title = p.get("title", "")
+                    target = _scorer.detect_target(title)
+                    if target:
+                        score = p.get("score", 0)
+                        signals.append({
+                            "source": "reddit_hot",
+                            "target_model": target,
+                            "content": f"[Reddit] (+{score}) {title[:100]}",
+                        })
+        except Exception:
+            continue
 
-        posts = r.json()["data"]["children"]
-        seen = set(state.get("reddit_seen", []))
-        new_posts = []
-
-        for post in posts:
-            d = post["data"]
-            if d["id"] not in seen:
-                new_posts.append(d)
-                seen.add(d["id"])
-
-        if not first_run:
-            for p in sorted(new_posts, key=lambda x: x.get("score", 0), reverse=True):
-                title = p.get("title", "")
-                target = _scorer.detect_target(title)
-                if target:
-                    score = p.get("score", 0)
-                    signals.append({
-                        "source": "reddit",
-                        "target_model": target,
-                        "content": f"[Reddit] 新帖(+{score}) → {title[:80]}",
-                    })
-
-        state["reddit_seen"] = list(seen)[-200:]
-
-    except Exception:
-        pass
-
+    state["reddit_seen"] = list(seen)[-400:]
     return signals
 
 
@@ -262,6 +263,7 @@ def check_arxiv(state: dict) -> list[dict]:
                 if entry_id in seen:
                     continue
 
+                seen.add(entry_id)  # deduplicate unconditionally
                 target = _scorer.detect_target(title)
                 if target:
                     signals.append({
@@ -269,7 +271,6 @@ def check_arxiv(state: dict) -> list[dict]:
                         "target_model": target,
                         "content": f"[arXiv] {title} — {entry_id}",
                     })
-                    seen.add(entry_id)
 
         except Exception:
             continue
