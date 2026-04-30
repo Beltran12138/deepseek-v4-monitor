@@ -8,12 +8,18 @@ Each function: fn(state: dict) -> list[dict] where each dict has keys:
   - content: str (human-readable signal description)
 """
 
-import requests
+import os
 import re
-import json
 import xml.etree.ElementTree as ET
 
+import requests
+from dotenv import load_dotenv
+
 import scorer as _scorer
+
+load_dotenv()
+
+_UA_HEADERS = {"User-Agent": "AIMonitor/2.0 (personal research)"}
 
 # ===================== GitHub =====================
 def check_github(state: dict) -> list[dict]:
@@ -31,48 +37,51 @@ def check_github(state: dict) -> list[dict]:
     for repo in repos_to_monitor:
         try:
             # Check branches
-            url = f"https://api.github.com/repos/deepseek-ai/{repo}/branches?per_page=100"
-            r = requests.get(url, headers=headers, timeout=10)
-            if r.status_code == 404:
+            r = requests.get(
+                f"https://api.github.com/repos/deepseek-ai/{repo}/branches?per_page=100",
+                headers=headers, timeout=10,
+            )
+            if r.status_code in (404, 403):
                 continue
-            if r.status_code != 200:
-                continue
+            r.raise_for_status()
 
-            branches = r.json()
-            branch_names = [b["name"] for b in branches if isinstance(b, dict)]
+            branch_names = [b["name"] for b in r.json() if isinstance(b, dict)]
             prev_branches = set(state.get("github_branches", {}).get(repo, []))
-            curr_branches = set(branch_names)
 
             for b in branch_names:
-                target = _scorer.detect_target(b)
-                if target:
-                    if b not in prev_branches or first_run:
+                if b not in prev_branches and not first_run:
+                    target = _scorer.detect_target(b)
+                    if target:
                         signals.append({
-                            "source": "github",
+                            "source": "github_new_branch",
                             "target_model": target,
-                            "content": f"[GitHub/{repo}] 新分支 → {b}",
+                            "content": f"[GitHub/{repo}] New branch: {b}",
                         })
-                    break
 
             state.setdefault("github_branches", {})[repo] = branch_names
 
-            # Check latest commits
+            # Check latest commits with deduplication
             r2 = requests.get(
-                f"https://api.github.com/repos/deepseek-ai/{repo}/commits?per_page=3",
-                headers=headers, timeout=10
+                f"https://api.github.com/repos/deepseek-ai/{repo}/commits?per_page=5",
+                headers=headers, timeout=10,
             )
             if r2.status_code == 200 and r2.json():
                 commits = r2.json()
+                prev_shas = set(state.get("github_commits", {}).get(repo, []))
                 for c in commits:
+                    sha = c.get("sha", "")
+                    if sha in prev_shas or first_run:
+                        continue
                     msg = c["commit"]["message"]
                     target = _scorer.detect_target(msg)
                     if target:
-                        first_line = msg.split("\n")[0][:60]
+                        first_line = msg.split("\n")[0][:80]
                         signals.append({
-                            "source": "github",
+                            "source": "github_new_branch",
                             "target_model": target,
                             "content": f"[GitHub/{repo}] Commit: {first_line}",
                         })
+                state.setdefault("github_commits", {})[repo] = [c.get("sha") for c in commits]
 
         except Exception:
             continue
@@ -81,10 +90,6 @@ def check_github(state: dict) -> list[dict]:
 
 
 def _get_github_token():
-    """Helper to fetch GitHub token from environment."""
-    import os
-    from dotenv import load_dotenv
-    load_dotenv()
     return os.getenv("MONITOR_GITHUB_TOKEN", os.getenv("GITHUB_TOKEN", ""))
 
 
@@ -224,9 +229,6 @@ def check_twitter(state: dict) -> list[dict]:
             except Exception:
                 continue
 
-        if not success:
-            pass
-
     return signals
 
 
@@ -234,7 +236,7 @@ def check_twitter(state: dict) -> list[dict]:
 def check_arxiv(state: dict) -> list[dict]:
     """Extract arXiv signals: papers mentioning AI model keywords."""
     signals = []
-    seen = state.setdefault("arxiv_seen", set())
+    seen = set(state.get("arxiv_seen", []))
 
     arxiv_targets = list(_scorer.TARGETS.keys())  # ["deepseek", "openai", "anthropic", "google"]
     arxiv_api = "https://export.arxiv.org/api/query"
@@ -275,4 +277,5 @@ def check_arxiv(state: dict) -> list[dict]:
         except Exception:
             continue
 
+    state["arxiv_seen"] = list(seen)
     return signals
