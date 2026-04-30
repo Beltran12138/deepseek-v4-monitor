@@ -77,12 +77,13 @@ def check_github(state: dict) -> list[dict]:
                     if target:
                         first_line = msg.split("\n")[0][:80]
                         signals.append({
-                            "source": "github_new_branch",
+                            "source": "github_new_commit",
                             "target_model": target,
                             "content": f"[GitHub/{repo}] Commit: {first_line}",
                         })
                 new_shas = {c.get("sha") for c in commits if c.get("sha")}
-                state.setdefault("github_commits", {})[repo] = list(prev_shas | new_shas)
+                merged = list(prev_shas | new_shas)
+                state.setdefault("github_commits", {})[repo] = merged[-200:]
 
         except Exception:
             continue
@@ -260,13 +261,14 @@ def check_arxiv(state: dict) -> list[dict]:
                 if entry_id_elem is None or title_elem is None:
                     continue
 
-                entry_id = entry_id_elem.text.strip()
+                raw_id = entry_id_elem.text.strip()
+                arxiv_id = raw_id.split("/abs/")[-1].split("v")[0]
                 title = title_elem.text.strip()
 
-                if entry_id in seen:
+                if arxiv_id in seen:
                     continue
 
-                seen.add(entry_id)  # deduplicate unconditionally
+                seen.add(arxiv_id)  # deduplicate unconditionally
                 target = _scorer.detect_target(title)
                 if target:
                     signals.append({
@@ -278,5 +280,5 @@ def check_arxiv(state: dict) -> list[dict]:
         except Exception:
             continue
 
-    state["arxiv_seen"] = list(seen)
+    state["arxiv_seen"] = list(seen)[-500:]
     return signals
