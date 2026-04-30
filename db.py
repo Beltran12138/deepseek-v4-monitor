@@ -9,14 +9,10 @@ _conn_cache: sqlite3.Connection | None = None
 
 def get_conn() -> sqlite3.Connection:
     global _conn_cache
-    if DB_PATH == ":memory:":
-        if _conn_cache is None:
-            _conn_cache = sqlite3.connect(DB_PATH, check_same_thread=False)
-            _conn_cache.row_factory = sqlite3.Row
-        return _conn_cache
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+    if _conn_cache is None:
+        _conn_cache = sqlite3.connect(DB_PATH, check_same_thread=False)
+        _conn_cache.row_factory = sqlite3.Row
+    return _conn_cache
 
 def init_db():
     with get_conn() as conn:
@@ -47,7 +43,7 @@ def init_db():
         """)
 
 def hash_content(content: str) -> str:
-    return hashlib.sha256(content.encode()).hexdigest()[:16]
+    return hashlib.sha256(content.encode()).hexdigest()[:32]
 
 def insert_signal(timestamp, source, target_model, content, rule_score):
     h = hash_content(content)
