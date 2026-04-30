@@ -81,7 +81,8 @@ def check_github(state: dict) -> list[dict]:
                             "target_model": target,
                             "content": f"[GitHub/{repo}] Commit: {first_line}",
                         })
-                state.setdefault("github_commits", {})[repo] = [c.get("sha") for c in commits]
+                new_shas = {c.get("sha") for c in commits if c.get("sha")}
+                state.setdefault("github_commits", {})[repo] = list(prev_shas | new_shas)
 
         except Exception:
             continue
