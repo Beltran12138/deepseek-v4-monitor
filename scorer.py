@@ -34,8 +34,9 @@ def rule_score(source: str) -> int:
     return SIGNAL_WEIGHTS.get(source, 0)
 
 def _llm_evaluate(content: str):
+    """Returns (score int 0-10, reason str) or (None, reason) on failure."""
     if not DEEPSEEK_API_KEY:
-        return 0, "no API key"
+        return None, "no API key"
     try:
         resp = requests.post(
             "https://api.deepseek.com/chat/completions",
@@ -55,15 +56,18 @@ def _llm_evaluate(content: str):
             },
             timeout=15,
         )
+        resp.raise_for_status()
         text = resp.json()["choices"][0]["message"]["content"]
         lines = text.splitlines()
-        score_line = next(l for l in lines if l.startswith("SCORE:"))
-        reason_line = next(l for l in lines if l.startswith("REASON:"))
+        score_line = next((l for l in lines if l.startswith("SCORE:")), None)
+        reason_line = next((l for l in lines if l.startswith("REASON:")), None)
+        if score_line is None or reason_line is None:
+            return None, "LLM format error"
         score = int(score_line.split(":")[1].strip())
         reason = reason_line.split(":", 1)[1].strip()
         return min(max(score, 0), 10), reason
     except Exception:
-        return 0, "LLM error"
+        return None, "LLM error"
 
 def score_signal(source: str, content: str, llm_calls_today: int) -> dict:
     rs = rule_score(source)
@@ -72,7 +76,10 @@ def score_signal(source: str, content: str, llm_calls_today: int) -> dict:
 
     if rs >= 7 and llm_calls_today < MAX_LLM_CALLS_PER_DAY:
         llm_score, llm_reason = _llm_evaluate(content)
-        level = "red" if llm_score >= 7 else "yellow"
+        if llm_score is None:
+            level = "yellow"  # LLM failed; fall back to rule confidence
+        else:
+            level = "red" if llm_score >= 7 else "yellow"
     elif rs >= 4:
         level = "yellow"
     else:

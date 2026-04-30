@@ -1,4 +1,5 @@
 import os, sys
+from unittest.mock import MagicMock, patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import scorer
 
@@ -31,4 +32,29 @@ def test_score_signal_yellow():
 def test_score_signal_no_llm_when_quota_full():
     result = scorer.score_signal("arxiv", "deepseek v5 paper", llm_calls_today=999)
     assert result["level"] == "yellow"
+    assert result["rule_score"] == 5
     assert result["llm_score"] is None
+
+def test_llm_evaluate_parses_valid_response():
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"content": "SCORE: 8\nREASON: Strong V5 signal."}}]
+    }
+    with patch("scorer.requests.post", return_value=mock_resp), \
+         patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}):
+        scorer.DEEPSEEK_API_KEY = "test-key"
+        score, reason = scorer._llm_evaluate("deepseek v5 pretraining paper")
+    assert score == 8
+    assert "V5" in reason or reason != ""
+
+def test_llm_evaluate_returns_none_on_malformed_response():
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"content": "Sorry, I cannot rate this."}}]
+    }
+    with patch("scorer.requests.post", return_value=mock_resp), \
+         patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}):
+        scorer.DEEPSEEK_API_KEY = "test-key"
+        score, reason = scorer._llm_evaluate("some content")
+    assert score is None
+    assert reason == "LLM format error"
